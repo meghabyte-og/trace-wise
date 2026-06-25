@@ -1,0 +1,54 @@
+{
+  "name": "Acme Corp — HQ + Datacenter",
+  "gateway": "internet-gw",
+  "devices": [
+    { "id": "internet-gw",  "name": "Internet Gateway",        "type": "gateway",       "tier": "edge",         "site": "HQ" },
+
+    { "id": "core-rtr-01",  "name": "Core Router 01",          "type": "router",        "tier": "core",         "site": "HQ" },
+    { "id": "core-rtr-02",  "name": "Core Router 02",          "type": "router",        "tier": "core",         "site": "HQ" },
+
+    { "id": "fw-01",        "name": "Edge Firewall 01",        "type": "firewall",      "tier": "security",     "site": "HQ" },
+    { "id": "fw-02",        "name": "Edge Firewall 02",        "type": "firewall",      "tier": "security",     "site": "HQ" },
+
+    { "id": "dist-sw-a",    "name": "Distribution Switch A",   "type": "switch",        "tier": "distribution", "site": "HQ" },
+    { "id": "dist-sw-b",    "name": "Distribution Switch B",   "type": "switch",        "tier": "distribution", "site": "DC" },
+
+    { "id": "acc-sw-a1",    "name": "Access Switch A1",        "type": "switch",        "tier": "access",       "site": "HQ" },
+    { "id": "acc-sw-a2",    "name": "Access Switch A2",        "type": "switch",        "tier": "access",       "site": "HQ" },
+    { "id": "acc-sw-b1",    "name": "Access Switch B1",        "type": "switch",        "tier": "access",       "site": "DC" },
+    { "id": "acc-sw-b2",    "name": "Access Switch B2",        "type": "switch",        "tier": "access",       "site": "DC" },
+
+    { "id": "srv-app-01",   "name": "App Server 01",           "type": "server",        "tier": "host",         "site": "HQ" },
+    { "id": "srv-app-02",   "name": "App Server 02",           "type": "server",        "tier": "host",         "site": "HQ" },
+    { "id": "srv-db-01",    "name": "Database Server 01",      "type": "server",        "tier": "host",         "site": "DC" },
+    { "id": "srv-db-02",    "name": "Database Server 02",      "type": "server",        "tier": "host",         "site": "DC" },
+    { "id": "srv-web-01",   "name": "Web Server 01",           "type": "server",        "tier": "host",         "site": "HQ" },
+    { "id": "srv-web-02",   "name": "Web Server 02",           "type": "server",        "tier": "host",         "site": "DC" }
+  ],
+  "links": [
+    { "from": "internet-gw", "to": "core-rtr-01" },
+    { "from": "internet-gw", "to": "core-rtr-02" },
+
+    { "from": "core-rtr-01", "to": "fw-01" },
+    { "from": "core-rtr-02", "to": "fw-02" },
+    { "from": "core-rtr-01", "to": "fw-02" },
+    { "from": "core-rtr-02", "to": "fw-01" },
+
+    { "from": "fw-01", "to": "dist-sw-a" },
+    { "from": "fw-02", "to": "dist-sw-b" },
+    { "from": "fw-01", "to": "dist-sw-b" },
+    { "from": "fw-02", "to": "dist-sw-a" },
+
+    { "from": "dist-sw-a", "to": "acc-sw-a1" },
+    { "from": "dist-sw-a", "to": "acc-sw-a2" },
+    { "from": "dist-sw-b", "to": "acc-sw-b1" },
+    { "from": "dist-sw-b", "to": "acc-sw-b2" },
+
+    { "from": "acc-sw-a1", "to": "srv-app-01" },
+    { "from": "acc-sw-a1", "to": "srv-web-01" },
+    { "from": "acc-sw-a2", "to": "srv-app-02" },
+    { "from": "acc-sw-b1", "to": "srv-db-01" },
+    { "from": "acc-sw-b1", "to": "srv-web-02" },
+    { "from": "acc-sw-b2", "to": "srv-db-02" }
+  ]
+}

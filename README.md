@@ -11,10 +11,6 @@ as a dependency graph, scores each device's health from telemetry, and uses
 
 ![Dashboard — a distribution switch outage collapsed to one root cause](docs/dashboard.png)
 
-> **Note:** This project was built with the help of **Claude** (Anthropic) —
-> design, implementation, and tests were produced in collaboration with Claude.
-
----
 
 ## What it does
 
@@ -149,10 +145,3 @@ Python 3.11+, [Flask](https://flask.palletsprojects.com/),
 [NetworkX](https://networkx.org/), and NumPy. No external services or network
 access required to run.
 
-## License
-
-MIT — see [LICENSE](LICENSE).
-
----
-
-*Built with [Claude](https://claude.ai) by Anthropic.*

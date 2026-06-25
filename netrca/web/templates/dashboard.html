@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NetRCA — {{ topology.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  {% set ring_c = '#2dd4a7' if overall >= 85 else '#f4b740' if overall >= 60 else '#f0556a' %}
+  <header class="top">
+    <div class="brand">
+      <h1>NET<span class="dim">RCA</span></h1>
+      <div class="sub">{{ topology.name }} · {{ topology|length }} devices monitored</div>
+    </div>
+    <div class="gauge">
+      <div class="metric">
+        <div class="num">{{ alarm_count }}</div>
+        <div class="lbl">active alarms</div>
+      </div>
+      <div class="ring" style="--pct: {{ overall }}; --ring-c: {{ ring_c }};">{{ overall }}</div>
+    </div>
+  </header>
+
+  <section class="scenarios">
+    <div class="eyebrow">Incident scenario</div>
+    <div class="pills">
+      {% for name, desc in scenarios %}
+        <a class="pill {{ 'active' if name == scenario }}"
+           href="?scenario={{ name }}" title="{{ desc }}">{{ name }}</a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="grid">
+
+    <!-- ----------------------------------------------------- topology map -->
+    <div class="panel map-wrap">
+      <div class="head">
+        <h2>Topology map</h2>
+        <span class="note">edge → core → access → host</span>
+      </div>
+      <div class="map-desc">{{ scenario_desc }}</div>
+      <svg class="topo" viewBox="0 0 {{ canvas_w }} {{ canvas_h }}"
+           xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Network topology coloured by device health">
+        <!-- faint grid -->
+        {% for gx in range(0, canvas_w + 1, 40) %}
+          <line class="grid-bg" x1="{{ gx }}" y1="0" x2="{{ gx }}" y2="{{ canvas_h }}"/>
+        {% endfor %}
+        {% for gy in range(0, canvas_h + 1, 40) %}
+          <line class="grid-bg" x1="0" y1="{{ gy }}" x2="{{ canvas_w }}" y2="{{ gy }}"/>
+        {% endfor %}
+
+        <!-- edges -->
+        {% for e in edges %}
+          <line class="edge {{ 'broken' if e.broken }}"
+                x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}"/>
+        {% endfor %}
+
+        <!-- nodes -->
+        {% for n in nodes %}
+          {% if n.is_root %}
+            <circle class="root-ring" cx="{{ n.x }}" cy="{{ n.y }}" r="16"/>
+            <text class="root-tag" x="{{ n.x }}" y="{{ n.y - 22 }}"
+                  text-anchor="middle">ROOT CAUSE</text>
+          {% endif %}
+          <circle class="node {{ n.status }}" cx="{{ n.x }}" cy="{{ n.y }}" r="8">
+            <title>{{ n.name }} — {{ n.status }} (score {{ n.score }})</title>
+          </circle>
+          <text class="label" x="{{ n.x }}" y="{{ n.y + 19 }}"
+                text-anchor="middle">{{ n.id }}</text>
+        {% endfor %}
+      </svg>
+
+      <div class="legend">
+        <span><i class="dot healthy"></i>healthy</span>
+        <span><i class="dot degraded"></i>degraded</span>
+        <span><i class="dot critical"></i>critical</span>
+        <span><i class="dot down"></i>down</span>
+        <span><i class="dot root"></i>root cause</span>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------- rca panel -->
+    <div class="panel">
+      <div class="head">
+        <h2>Root cause analysis</h2>
+      </div>
+
+      {% if result.root_causes %}
+        <div class="rca-stat">
+          <span class="big">{{ '%d'|format((result.noise_reduction * 100)|round(0)) }}%</span>
+          <span class="txt">noise reduction — {{ result.root_causes|length }}
+            cause(s) explain {{ result.total_unhealthy }} alarm(s)</span>
+        </div>
+        <div class="rc-list">
+          {% for rc in result.root_causes|sort(attribute='blast_radius', reverse=true) %}
+            <div class="rc">
+              <div class="rc-top">
+                <span class="id">{{ rc.device_id }}</span>
+                <span class="kind {{ rc.kind }}">{{ rc.kind }}</span>
+              </div>
+              <div class="reason">{{ rc.reason }}.</div>
+              <div class="conf-row">
+                <span>confidence</span>
+                <span class="conf-bar"><i style="width: {{ (rc.confidence*100)|round(0)|int }}%"></i></span>
+                <span>{{ (rc.confidence*100)|round(0)|int }}%</span>
+              </div>
+              {% if rc.impacted %}
+                <div class="blast">blast radius: <b>{{ rc.blast_radius }}</b>
+                  device(s) — {{ rc.impacted|join(', ') }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="allclear">✓ All systems nominal — no incidents detected.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ----------------------------------------------------------- table -->
+  <div class="panel table-panel">
+    <div class="head">
+      <h2>Device inventory</h2>
+      <span class="note">sorted worst-first</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Device</th><th>Name</th><th>Tier</th><th>Site</th>
+          <th>Status</th><th>Health</th><th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          {% set sc = '#2dd4a7' if r.score >= 85 else '#f4b740' if r.score >= 50 else '#f0556a' %}
+          <tr>
+            <td class="id">{{ r.id }}</td>
+            <td>{{ r.name }}</td>
+            <td>{{ r.tier }}</td>
+            <td>{{ r.site }}</td>
+            <td><span class="status-pill {{ r.status }}">{{ r.status }}</span></td>
+            <td>
+              <div class="score-cell">
+                <span class="score-bar"><i style="width: {{ r.score }}%; background: {{ sc }};"></i></span>
+                <span class="id">{{ r.score }}</span>
+              </div>
+            </td>
+            <td><span class="role-tag {{ 'root' if r.role == 'root cause' else 'symptom' if r.role == 'symptom' }}">{{ r.role }}</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="foot">
+    netrca · health scoring + reachability-based root cause analysis ·
+    built with Claude (Anthropic)
+  </footer>
+
+</div>
+</body>
+</html>
